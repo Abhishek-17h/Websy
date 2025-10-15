@@ -1,13 +1,14 @@
-import prisma from '@/lib/db';
+"use client"
+
 import { useTRPC } from '@/trpc/client';
 
 export default function Home(){
-  const trpc= useTRPC();
-  trpc.hello.queryOptions({text:'from tRPC'});
-   const users = prisma.user.findMany();
+  const trpc = useTRPC();
+  trpc.hello.queryOptions({text:"world"});
+   
   return (
     <div>
-      {JSON.stringify(users,null ,2)}
+      "hello world"
     </div>
   )
 }
