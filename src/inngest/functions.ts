@@ -1,19 +1,33 @@
+import { Sandbox } from '@e2b/code-interpreter';
 import { inngest } from "./client";
 import { openai, createAgent } from "@inngest/agent-kit";
+import { getSandbox } from './utils';
 
 export const helloWorld = inngest.createFunction(
   { id: "hello-world" },
   { event: "test/hello.world" },
-  async ({ event }) => {
-    const summerizer = createAgent({
-      name: "summerizer",
-      system: "You are an expert summerizer.  You summerize in 2 words.",
+  async ({ event,step }) => {
+
+  const sandboxId= await step.run("get-sandbox-id",async()=>{
+    const sandbox= await Sandbox.create("websy-nextjs-prod");
+    return sandbox.sandboxId;
+  })
+
+    const codeAgent = createAgent({
+      name: "code-agent",
+      system: "You are an expert nextjs developer.You write clean and efficient code.You write simple nextjs and reactjs code snippets",
       model: openai({ model: "gpt-4o" }),
     });
 
-    const { output } = await summerizer.run(
-      `Summarize the following text in 2 words: ${event.data.value}`
+    const { output } = await codeAgent.run(
+      `Write the following snippet: ${event.data.value}`
     );
-    return { output };
+    
+    const sandboxurl= await step.run("get-sandbox-url",async()=>{
+      const sandbox= await getSandbox(sandboxId);
+      const host=sandbox.getHost(3000);
+      return `https://${host}`;
+    })
+    return { output,sandboxurl };
   }
 );

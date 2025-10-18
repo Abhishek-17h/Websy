@@ -1,0 +1,17 @@
+# This is a config for E2B sandbox template.
+# You can use template ID (4idl6a8uav6r1612qtty) or template name (websy-nextjs-prod) to create a sandbox:
+
+# Python SDK
+# from e2b import Sandbox, AsyncSandbox
+# sandbox = Sandbox.create("websy-nextjs-prod") # Sync sandbox
+# sandbox = await AsyncSandbox.create("websy-nextjs-prod") # Async sandbox
+
+# JS SDK
+# import { Sandbox } from 'e2b'
+# const sandbox = await Sandbox.create('websy-nextjs-prod')
+
+team_id = "fd76c130-ca02-44ff-8e08-139a88c4e70c"
+start_cmd = "/compile_page.sh"
+dockerfile = "e2b.Dockerfile"
+template_name = "websy-nextjs-prod"
+template_id = "4idl6a8uav6r1612qtty"
