@@ -130,7 +130,7 @@ export const FileExplorer = ({ files }: FileExplorerProps) => {
       <ResizableHandle className="hover:bg-primary transition-colors" />
       <ResizablePanel defaultSize={70} minSize={50}>
         {selectedFiles && files[selectedFiles] ? (
-          <div className="fles flex-col h-full w-full">
+          <div className="flex flex-col h-full w-full">
             <div className="border-b bg-sidebar px-4 py-2 flex justify-between items-center gap-x-2">
               <FileBreadcrumb filePath={selectedFiles} />
               <Hint text="Copy to clipboard" side="bottom">
