@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@/components/ui/button";
 import { Form, FormField } from "@/components/ui/form";
+import { useClerk } from "@clerk/nextjs";
 
 interface Props {
   projectId: string;
@@ -26,6 +27,7 @@ const formSchema = z.object({
 export const MessageForm = ({ projectId }: Props) => {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
+  const clerk=useClerk();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -44,7 +46,9 @@ export const MessageForm = ({ projectId }: Props) => {
         //reinvalidate usage status
       },
       onError:(error)=>{
-        //redirect to pricing page if specific error
+        if(error.data?.code==="UNAUTHORIZED"){
+          clerk.openSignIn();
+        }
         toast.error(`Error: ${error.message}`);
       }
     })
