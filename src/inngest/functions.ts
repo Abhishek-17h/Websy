@@ -6,15 +6,18 @@ import {
   createTool,
   createNetwork,
   type Tool,
+  type Message,
+  createState,
+  Agent,
 } from "@inngest/agent-kit";
-import { getSandbox, lastAssistantTextMessageContent } from "./utils";
-import {  z } from "zod";
+import { getSandbox, lastAssistantTextMessageContent, parseAgentOutput } from "./utils";
+import { z } from "zod";
 import prisma from "@/lib/db";
-import { PROMPT } from "@/prompt";
+import { FRAGMENT_TITLE_PROMPT, PROMPT, RESPONSE_PROMPT } from "@/prompt";
 
-interface AgentState{
-  summary:string;
-  files:{[path:string]:string}
+interface AgentState {
+  summary: string;
+  files: { [path: string]: string };
 }
 
 export const codeAgentFunction = inngest.createFunction(
@@ -25,6 +28,37 @@ export const codeAgentFunction = inngest.createFunction(
       const sandbox = await Sandbox.create("websy-nextjs-prod");
       return sandbox.sandboxId;
     });
+
+    const previousMessage = await step.run("get-previous-message", async () => {
+      const formattedMessages: Message[] = [];
+      const messages = await prisma.message.findMany({
+        where: {
+          projectId: event.data.projectId,
+        },
+        orderBy: {
+          updatedAt: "desc",
+        },
+      });
+
+      for (const message of messages) {
+        formattedMessages.push({
+          type: "text",
+          role: message.role === "ASSISTANT" ? "assistant" : "user",
+          content: message.content,
+        });
+      }
+      return formattedMessages;
+    });
+
+    const state = createState<AgentState>(
+      {
+        summary: "",
+        files: {},
+      },
+      {
+        messages: previousMessage,
+      }
+    );
 
     const codeAgent = createAgent<AgentState>({
       name: "An expert coding agent",
@@ -76,7 +110,10 @@ export const codeAgentFunction = inngest.createFunction(
               })
             ),
           }),
-          handler: async ({ files }, { step, network }:Tool.Options<AgentState>) => {
+          handler: async (
+            { files },
+            { step, network }: Tool.Options<AgentState>
+          ) => {
             const newFiles = await step?.run(
               "createOrUpdateFiles",
               async () => {
@@ -139,6 +176,7 @@ export const codeAgentFunction = inngest.createFunction(
     const network = createNetwork<AgentState>({
       name: "code-agent-network",
       agents: [codeAgent],
+      defaultState: state,
       maxIter: 15,
       router: async ({ network }) => {
         const summary = network.state.data.summary;
@@ -149,11 +187,36 @@ export const codeAgentFunction = inngest.createFunction(
       },
     });
 
-    const result = await network.run(event.data.value);
+    const result = await network.run(event.data.value, { state });
 
-    const isError=
+    const fragmentTitleGenerator = createAgent({
+      name: "fragment-title-generator",
+      description: "A fragment title generator",
+      system: FRAGMENT_TITLE_PROMPT,
+      model: openai({
+        model: "gpt-4o",
+      }),
+    });
+
+    const responseGenerator = createAgent({
+      name: "response-generator",
+      description: "A response generator",
+      system: RESPONSE_PROMPT,
+      model: openai({
+        model: "gpt-4o",
+      }),
+    });
+
+    const { output: fragmentTitleOutput } = await fragmentTitleGenerator.run(
+      result.state.data.summary
+    );
+    const { output: responseOutput } = await responseGenerator.run(
+      result.state.data.summary
+    );
+
+    const isError =
       !result.state.data.summary ||
-      Object.keys(result.state.data.summary || {}).length===0;
+      Object.keys(result.state.data.summary || {}).length === 0;
 
     const sandboxurl = await step.run("get-sandbox-url", async () => {
       const sandbox = await getSandbox(sandboxId);
@@ -162,27 +225,27 @@ export const codeAgentFunction = inngest.createFunction(
     });
 
     await step.run("save-result", async () => {
-      if(isError){
+      if (isError) {
         await prisma.message.create({
-          data:{
-            projectId:event.data.projectId,
+          data: {
+            projectId: event.data.projectId,
             content: "The agent failed to produce a result. Please try again.",
             role: "ASSISTANT",
-            type: "ERROR"
-          }
-        })
+            type: "ERROR",
+          },
+        });
       }
 
       return await prisma.message.create({
         data: {
           projectId: event.data.projectId,
-          content: result.state.data.summary,
+          content: parseAgentOutput(responseOutput),
           role: "ASSISTANT",
           type: "RESULT",
           fragment: {
             create: {
               sandboxurl: sandboxurl,
-              title: "Fragment",
+              title: parseAgentOutput(fragmentTitleOutput),
               files: result.state.data.files,
             },
           },
