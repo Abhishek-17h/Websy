@@ -7,7 +7,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
-import { te } from "date-fns/locale";
 
 interface HintProps {
   children: React.ReactNode;

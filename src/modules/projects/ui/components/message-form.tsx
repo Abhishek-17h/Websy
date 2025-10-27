@@ -5,7 +5,7 @@ import { z } from "zod";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ArrowUpIcon, Loader2Icon } from "lucide-react";
-import { useMutation,useQuery,useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { cn } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
@@ -29,9 +29,9 @@ const formSchema = z.object({
 export const MessageForm = ({ projectId }: Props) => {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const router=useRouter();
+  const router = useRouter();
 
-  const {data:usage}=useQuery(trpc.usage.status.queryOptions());
+  const { data: usage } = useQuery(trpc.usage.status.queryOptions());
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -42,19 +42,19 @@ export const MessageForm = ({ projectId }: Props) => {
 
   const createMessage = useMutation(
     trpc.messages.create.mutationOptions({
-      onSuccess: (data) => {
+      onSuccess: () => {
         form.reset();
         queryClient.invalidateQueries(
           trpc.messages.getmany.queryOptions({ projectId })
         );
         //reinvalidate usage status
       },
-      onError:(error)=>{
-        if(error.data?.code==="TOO_MANY_REQUESTS"){
+      onError: (error) => {
+        if (error.data?.code === "TOO_MANY_REQUESTS") {
           router.push("/pricing");
         }
         toast.error(`Error: ${error.message}`);
-      }
+      },
     })
   );
 
@@ -72,10 +72,10 @@ export const MessageForm = ({ projectId }: Props) => {
 
   return (
     <Form {...form}>
-      {showUsage &&(
+      {showUsage && (
         <Usage
-        points={usage.remainingPoints}
-        msBeforeNext={usage.msBeforeNext}
+          points={usage.remainingPoints}
+          msBeforeNext={usage.msBeforeNext}
         />
       )}
       <form

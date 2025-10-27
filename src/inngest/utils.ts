@@ -1,5 +1,5 @@
 import { Sandbox } from "@e2b/code-interpreter";
-import { Agent, AgentResult, Message, TextMessage } from "@inngest/agent-kit";
+import {AgentResult, Message, TextMessage } from "@inngest/agent-kit";
 import { SANDBOX_TIMEOUT } from "./type";
 
 export async function getSandbox(sandboxId: string) {

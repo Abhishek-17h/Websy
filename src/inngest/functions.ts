@@ -7,8 +7,7 @@ import {
   createNetwork,
   type Tool,
   type Message,
-  createState,
-  Agent,
+  createState
 } from "@inngest/agent-kit";
 import { getSandbox, lastAssistantTextMessageContent, parseAgentOutput } from "./utils";
 import { z } from "zod";
