@@ -27,7 +27,7 @@ export const MessagesContainer = ({
       { projectId },
       {
         //todo:temp fix live message
-        refetchInterval:5000,
+        refetchInterval:2000,
       }
     )
   );
